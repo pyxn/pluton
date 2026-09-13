@@ -1,2 +1,8 @@
-/references/
+/references/*
+!/references/history/
+/references/history/*
+!/references/history/.gitkeep
+!/references/library/
+/references/library/*
+!/references/library/.gitkeep
 __pycache__/

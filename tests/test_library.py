@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -60,6 +61,23 @@ class LibraryTests(unittest.TestCase):
             library.read_section(self.root, self.data, "guide-navigation")
         with self.assertRaisesRegex(ValueError, "changed"):
             library.verify(self.root, self.data)
+
+    def test_missing_hash_allows_explicitly_unverified_read(self):
+        for entry in self.data["sources"] + self.data["sections"]:
+            entry.pop("sha256")
+        self.save()
+        data = library.load_registry(self.root)
+        self.assertEqual(library.route(data, "menu")[0]["id"], "guide-navigation")
+        _, text = library.read_section(self.root, data, "guide-navigation")
+        self.assertIn("Keep locations clear.", text)
+        with self.assertRaisesRegex(ValueError, "No SHA-256"):
+            library.verify(self.root, data)
+
+    def test_supplied_invalid_hash_is_still_rejected(self):
+        self.data["sections"][0]["sha256"] = "unverified"
+        self.save()
+        with self.assertRaisesRegex(ValueError, "Invalid SHA-256"):
+            library.load_registry(self.root)
 
     def test_rejects_path_escape_and_symlink_escape(self):
         for path in ("../outside.txt", "/tmp/outside.txt"):
@@ -128,7 +146,19 @@ class LibraryTests(unittest.TestCase):
         subprocess.run([sys.executable, str(reader), "verify"], cwd=self.root,
                        text=True, capture_output=True, check=True)
 
-    def test_git_ignores_all_private_layers_but_keeps_the_reader(self):
+        for entry in self.data["sources"] + self.data["sections"]:
+            entry["sha256"] = None
+        (sources / "registry.json").write_text(json.dumps(self.data), encoding="utf-8")
+        result = subprocess.run([sys.executable, str(reader), "read", "guide-forms"],
+                                cwd=self.root, text=True, capture_output=True, check=True)
+        self.assertIn("Text hash: unverified", result.stdout)
+        result = subprocess.run([sys.executable, str(reader), "verify"],
+                                cwd=self.root, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Hash verification is incomplete", result.stderr)
+
+    @unittest.skipUnless(shutil.which("git"), "Git is not installed")
+    def test_git_ignores_private_data_but_packages_empty_folders(self):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         skill = self.root / "example"
         skill.mkdir()
@@ -138,11 +168,22 @@ class LibraryTests(unittest.TestCase):
                    "references/library/registry.json", "references/library/book/original.pdf",
                    "references/library/book/sections/chapter.md"]
         for relative in private:
+            path = skill / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("Synthetic private data", encoding="utf-8")
             result = subprocess.run(["git", "check-ignore", "-q", f"example/{relative}"], cwd=self.root)
             self.assertEqual(result.returncode, 0, relative)
-        for relative in ["SKILL.md", "assets/learning.md", "scripts/library.py"]:
+        markers = ["references/history/.gitkeep", "references/library/.gitkeep"]
+        for relative in markers:
+            (skill / relative).touch()
+        for relative in ["SKILL.md", "assets/learning.md", "scripts/library.py", *markers]:
             result = subprocess.run(["git", "check-ignore", "-q", f"example/{relative}"], cwd=self.root)
             self.assertEqual(result.returncode, 1, relative)
+        subprocess.run(["git", "add", "example"], cwd=self.root, check=True)
+        tracked = subprocess.run(["git", "ls-files", "--", "example"], cwd=self.root,
+                                 text=True, capture_output=True, check=True)
+        self.assertEqual(set(tracked.stdout.splitlines()),
+                         {"example/.gitignore", *(f"example/{path}" for path in markers)})
 
 
 if __name__ == "__main__":

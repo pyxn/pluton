@@ -41,7 +41,7 @@ def load_registry(root: Path) -> dict:
         for entry in entries:
             if not isinstance(entry, dict):
                 raise ValueError(f"Invalid {group} entry")
-            required = ["id", "title", "path", "sha256"]
+            required = ["id", "title", "path"]
             if group == "sections":
                 required += ["source_id", "locator"]
             if any(not isinstance(entry.get(key), str) or not entry[key].strip() for key in required):
@@ -49,7 +49,9 @@ def load_registry(root: Path) -> dict:
             if entry["id"] in ids:
                 raise ValueError(f"Duplicate {group} ID: {entry['id']}")
             ids.add(entry["id"])
-            if not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]):
+            digest = entry.get("sha256")
+            if digest is not None and (not isinstance(digest, str)
+                                       or not re.fullmatch(r"[0-9a-f]{64}", digest)):
                 raise ValueError(f"Invalid SHA-256: {entry['id']}")
             local_path(root, entry["path"])
     source_ids = {source["id"] for source in data["sources"]}
@@ -94,7 +96,8 @@ def read_section(root: Path, data: dict, section_id: str) -> tuple[dict, str]:
     if section is None:
         raise ValueError(f"Unknown section: {section_id}")
     payload = local_path(root, section["path"]).read_bytes()
-    if hashlib.sha256(payload).hexdigest() != section["sha256"]:
+    digest = section.get("sha256")
+    if digest is not None and hashlib.sha256(payload).hexdigest() != digest:
         raise ValueError(f"Source text changed: {section_id}. Check the original before re-indexing.")
     text = payload.decode("utf-8")
     if "lines" in section:
@@ -109,6 +112,8 @@ def read_section(root: Path, data: dict, section_id: str) -> tuple[dict, str]:
 def verify(root: Path, data: dict) -> None:
     hashes = {}
     for entry in data["sources"] + data["sections"]:
+        if entry.get("sha256") is None:
+            raise ValueError(f"No SHA-256 recorded: {entry['id']}. Hash verification is incomplete.")
         path = local_path(root, entry["path"])
         if path in hashes:
             if hashes[path] != entry["sha256"]:
@@ -155,6 +160,8 @@ def main() -> int:
             section, text = read_section(ROOT, data, args.section_id)
             source = next(item for item in data["sources"] if item["id"] == section["source_id"])
             print(f"Source: {source['title']}\nSection: {section['title']}\nLocation: {section['locator']}\n")
+            if section.get("sha256") is None:
+                print("Text hash: unverified (no recorded SHA-256).\n")
             print(text, end="" if text.endswith("\n") else "\n")
         else:
             entries = route(data, args.query, args.limit) if args.command == "route" else data["sections"]
