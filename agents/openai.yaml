@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pluton"
+  short_description: "Create skills with sources and lasting memory"
+  default_prompt: "Use $pluton to create or convert a skill with a stable contract, private memory, dated history, and optional seed sources."
+policy:
+  allow_implicit_invocation: false
