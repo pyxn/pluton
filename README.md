@@ -285,4 +285,4 @@ lessons close, and change stable rules only through deliberate review.
 
 ## License
 
-No license has been specified for this repository yet.
+Licensed under the [MIT License](LICENSE). Copyright (c) 2026 Paul Yu.
