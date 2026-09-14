@@ -2,17 +2,20 @@
 
 **Create skills that learn from use—without rewriting their own rules.**
 
-Pluton is an agent skill that creates and converts other skills. It gives each
-one a stable contract, private working memory, dated history, and an optional
-source library. The resulting skill owns those files. It does not need Pluton
-to keep working.
+Pluton is an agent skill for creating and improving other skills. Each skill
+gets a stable contract, private working memory, dated history, and an optional
+source library. It owns its files and works independently after creation.
+
+Skills define how to do the work. The user or host decides which skills an
+agent uses and what it may do.
 
 Use it for recurring work where verified experience should improve the next
 result: code review, research, operations, writing, or a source-backed workflow.
 
 No database. No background service. No required Python runtime.
 
-[Get started](#get-started) · [How learning works](#how-learning-works) ·
+[Get started](#get-started) · [Skills and agents](#skills-and-agents) ·
+[How learning works](#how-learning-works) ·
 [Seed knowledge](#seed-knowledge) · [Privacy](#privacy-and-control)
 
 ## Why Pluton
@@ -34,6 +37,25 @@ Pluton separates those concerns:
 The contract controls actions. Sources and history supply evidence. Memory
 helps the agent choose its next step. Neither a book nor a saved lesson can
 grant permission or override the contract.
+
+## Skills and agents
+
+Pluton creates skills. Those skills can serve one general agent or several
+specialized agents.
+
+A separate agent definition is optional. You can give an agent a name, a role,
+and a chosen set of skills through your host—the application that runs it.
+You can also let one agent select skills as each task requires.
+
+**An agent's role takes shape through the skills it uses and the work it performs.**
+
+The same agent might use research skills to investigate a question, writing
+skills to explain the result, and review skills to check it. Each skill
+contributes its own method and verified lessons. Together, they support the work.
+
+There is no separate “Pluton agent” type to install. Agent identity and setup
+remain with the user or host. Permissions remain subject to the host's controls
+and the user's instructions.
 
 ## Get started
 
@@ -276,12 +298,13 @@ or [source library guide](assets/library.md), depending on the change.
 
 ## The name
 
-Pluton's name comes from this idea:
+A **pluton** is a body of rock formed when magma—molten rock beneath Earth's
+surface—cools and solidifies underground.
+[Dictionary.com](https://www.dictionary.com/browse/pluton)
 
-> It's the slow, private crystallization of experience—beliefs, values, scars—that hardened into something solid while nobody was watching.
-
-The design applies that idea to skills: preserve experience, keep useful
-lessons close, and change stable rules only through deliberate review.
+That process inspired the name. Pluton preserves experience as private evidence,
+develops useful lessons through verified use, and turns proven lessons into
+lasting rules through deliberate review.
 
 ## License
 
